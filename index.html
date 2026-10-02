@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نموذج الأسئلة</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="card hero">
+    <div class="badge">📝 نموذج الأسئلة</div>
+    <h1>شارك بإجاباتك</h1>
+    <p>اكتب بياناتك وأجب عن الأسئلة التالية، ثم اضغط إرسال.</p>
+  </div>
+  <form id="quizForm">
+    <div class="card">
+      <label class="label">الاسم</label>
+      <input id="name" required placeholder="اكتب اسمك هنا">
+    </div>
+    <div id="questions"></div>
+    <div class="card"><button class="primary" type="submit">إرسال الإجابات</button></div>
+  </form>
+  <div id="done" class="card success hidden">
+    <div class="big">✓</div><h2>تم إرسال إجاباتك بنجاح</h2><p>شكرًا لمشاركتك.</p>
+  </div>
+</div>
+<script>
+const defaults=[
+ {id:1,text:"اكتب إجابتك على السؤال الأول:"},
+ {id:2,text:"اكتب إجابتك على السؤال الثاني:"}
+];
+function getQuestions(){return JSON.parse(localStorage.getItem("questions")||"null")||defaults;}
+function render(){
+ const box=document.getElementById("questions"); box.innerHTML="";
+ getQuestions().forEach((q,i)=>{
+  box.innerHTML+=`<div class="card q"><div class="qnum">السؤال ${i+1}</div><h3>${esc(q.text)}</h3><textarea required data-id="${q.id}" placeholder="اكتب إجابتك هنا..."></textarea></div>`;
+ });
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+document.getElementById("quizForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const answers=[...document.querySelectorAll("textarea")].map(t=>({questionId:Number(t.dataset.id),answer:t.value}));
+ const submissions=JSON.parse(localStorage.getItem("submissions")||"[]");
+ submissions.push({id:Date.now(),name:document.getElementById("name").value,answers,createdAt:new Date().toLocaleString("ar-EG")});
+ localStorage.setItem("submissions",JSON.stringify(submissions));
+ document.getElementById("quizForm").classList.add("hidden");document.getElementById("done").classList.remove("hidden");
+});
+render();
+</script>
+</body></html>

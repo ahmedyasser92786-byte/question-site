@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>لوحة التحكم</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="login" class="login wrap">
+ <div class="card loginbox"><div class="badge">🔐 Admin</div><h1>لوحة التحكم</h1><p>أدخل كلمة مرور الإدارة.</p>
+ <input id="pass" type="password" placeholder="كلمة المرور"><button class="primary" onclick="login()">دخول</button><small>كلمة المرور التجريبية: 1234</small></div>
+</div>
+<div id="app" class="wrap hidden">
+ <div class="top"><div><div class="badge">لوحة الإدارة</div><h1>إدارة الأسئلة والردود</h1></div><button class="ghost" onclick="logout()">خروج</button></div>
+ <div class="tabs"><button class="tab active" onclick="showTab('questions')">الأسئلة</button><button class="tab" onclick="showTab('answers')">الإجابات</button></div>
+ <section id="questionsTab">
+  <div class="card">
+   <h2>إضافة سؤال</h2><textarea id="newQ" placeholder="اكتب السؤال هنا..."></textarea>
+   <button class="primary" onclick="addQ()">+ إضافة السؤال</button>
+  </div>
+  <div id="qList"></div>
+ </section>
+ <section id="answersTab" class="hidden">
+  <div class="card row"><h2>الردود</h2><button class="ghost" onclick="downloadCSV()">⬇ تحميل Excel/CSV</button><button class="danger" onclick="clearAnswers()">حذف الكل</button></div>
+  <div id="answers"></div>
+ </section>
+</div>
+<script>
+const KEY="admin_ok";
+function login(){if(document.getElementById("pass").value==="1234"){sessionStorage.setItem(KEY,"1");openApp()}else alert("كلمة المرور غير صحيحة");}
+function logout(){sessionStorage.removeItem(KEY);location.reload()}
+function openApp(){document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");renderQuestions();renderAnswers();}
+if(sessionStorage.getItem(KEY))openApp();
+function qs(){return JSON.parse(localStorage.getItem("questions")||"null")||[{id:1,text:"اكتب إجابتك على السؤال الأول:"},{id:2,text:"اكتب إجابتك على السؤال الثاني:"}];}
+function saveQs(a){localStorage.setItem("questions",JSON.stringify(a));}
+function addQ(){let t=document.getElementById("newQ").value.trim();if(!t)return;let a=qs();a.push({id:Date.now(),text:t});saveQs(a);document.getElementById("newQ").value="";renderQuestions();}
+function renderQuestions(){let box=document.getElementById("qList");box.innerHTML="";qs().forEach((q,i)=>box.innerHTML+=`<div class="card item"><div><b>السؤال ${i+1}</b><textarea id="q_${q.id}">${esc(q.text)}</textarea></div><div class="actions"><button class="primary small" onclick="editQ(${q.id})">حفظ</button><button class="danger small" onclick="delQ(${q.id})">حذف</button></div></div>`)}
+function editQ(id){let a=qs(),q=a.find(x=>x.id===id);q.text=document.getElementById("q_"+id).value;saveQs(a);alert("تم حفظ السؤال");}
+function delQ(id){if(!confirm("حذف السؤال؟"))return;saveQs(qs().filter(q=>q.id!==id));renderQuestions();}
+function renderAnswers(){let box=document.getElementById("answers"),s=JSON.parse(localStorage.getItem("submissions")||"[]"),questions=qs();if(!s.length){box.innerHTML='<div class="card empty">لا توجد إجابات حتى الآن.</div>';return;}box.innerHTML=s.slice().reverse().map(x=>`<div class="card submission"><div class="subhead"><h3>${esc(x.name)}</h3><small>${esc(x.createdAt)}</small></div>${x.answers.map(a=>{let q=questions.find(z=>z.id===a.questionId);return `<div class="answer"><b>${esc(q?q.text:"سؤال محذوف")}</b><p>${esc(a.answer)}</p></div>`}).join("")}</div>`).join("");}
+function clearAnswers(){if(confirm("حذف جميع الردود؟")){localStorage.removeItem("submissions");renderAnswers();}}
+function showTab(t){document.getElementById("questionsTab").classList.toggle("hidden",t!=="questions");document.getElementById("answersTab").classList.toggle("hidden",t!=="answers");document.querySelectorAll(".tab").forEach((b,i)=>b.classList.toggle("active",(t==="questions"?i===0:i===1)));if(t==="answers")renderAnswers();}
+function downloadCSV(){let s=JSON.parse(localStorage.getItem("submissions")||"[]"),q=qs();let rows=[["الاسم","التاريخ",...q.map(x=>x.text)]];s.forEach(x=>rows.push([x.name,x.createdAt,...q.map(q=>{let a=x.answers.find(z=>z.questionId===q.id);return a?a.answer:""})]));let csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="answers.csv";a.click();}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+</script>
+</body></html>
